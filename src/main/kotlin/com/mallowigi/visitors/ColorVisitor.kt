@@ -59,7 +59,7 @@ abstract class ColorVisitor : HighlightVisitor, LangVisitor, DumbAware {
   fun highlight(color: Color, range: IntRange) {
     if (!instance.isEnabled) return
     assert(highlightInfoHolder != null)
-    highlightInfoHolder!!.add(ColorHighlighter.highlightColor(range, color))
+    //highlightInfoHolder!!.add(ColorHighlighter.highlightColor(range, color))
   }
 
   /**

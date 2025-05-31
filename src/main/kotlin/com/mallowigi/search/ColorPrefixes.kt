@@ -42,3 +42,4 @@ enum class ColorPrefixes(val text: String) {
   SWIFT_COLOR("NSColor("),
   UI_COLOR("[UIColor ")
 }
+

@@ -25,24 +25,31 @@
  */
 package com.mallowigi.gutter
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.markup.GutterIconRenderer
+import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.ide.CopyPasteManager
+import com.intellij.psi.JavaPsiFacade
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
 import com.intellij.ui.ColorChooserService
 import com.intellij.ui.ColorUtil
+import com.intellij.ui.picker.ColorListener
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.ColorIcon
 import com.intellij.util.ui.EmptyIcon
 import com.mallowigi.ColorHighlighterBundle.message
 import com.mallowigi.gutter.actions.*
-import org.jetbrains.annotations.NonNls
 import java.awt.Color
 import java.awt.datatransfer.StringSelection
 import java.util.*
 import javax.swing.Icon
 
-class GutterColorRenderer(private val color: Color?) : GutterIconRenderer() {
+class GutterColorRenderer(private val color: Color?, private val element: PsiElement?) : GutterIconRenderer() {
   override fun getIcon(): Icon = when {
     color != null -> {
       EditorColorsManager.getInstance().globalScheme.defaultForeground
@@ -81,7 +88,7 @@ class GutterColorRenderer(private val color: Color?) : GutterIconRenderer() {
     )
   }
 
-  override fun getClickAction(): @NonNls AnAction {
+  /*override fun getClickAction(): @NonNls AnAction {
     return object : AnAction(message("choose.color1")) {
       override fun actionPerformed(e: AnActionEvent) {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return
@@ -92,13 +99,203 @@ class GutterColorRenderer(private val color: Color?) : GutterIconRenderer() {
         copyColor(currentColor, newColor)
       }
 
+
       private fun copyColor(currentColor: Color, newColor: Color?) {
         if (newColor == null || newColor == currentColor) return
 
         CopyPasteManager.getInstance().setContents(StringSelection(ColorUtil.toHex(newColor, false)))
       }
     }
+  }*/
+
+  private var currentHighlighter: RangeHighlighter? = null
+
+  override fun getClickAction(): AnAction {
+    return object : AnAction(message("choose.color1")) {
+      override fun actionPerformed(e: AnActionEvent) {
+        val editor = e.getData(CommonDataKeys.EDITOR) ?: return
+        val currentColor = color ?: return
+        val project = editor.project ?: return
+        val element = this@GutterColorRenderer.element ?: return
+
+        // Mostrar popup de selección de color
+        ColorChooserService.instance.showPopup(
+          project = project,
+          currentColor = currentColor,
+          editor = editor,
+          listener = { newColor, _ ->
+            if (newColor != null && newColor != currentColor) {
+              //highlightColorTemporary(editor, element, newColor)
+              //replaceColorInCode(editor, element, currentColor, color)
+            }
+          },
+          showAlpha = true,
+          /*popupCloseListener = object : com.intellij.ui.picker.ColorPickerPopupCloseListener {
+            override fun closed(color: Color?, canceled: Boolean) {
+              removeCurrentHighlighter(editor)
+              if (!canceled && color != null && color != currentColor) {
+                replaceColorInCode(editor, element, currentColor, color)
+              }
+            }
+
+            override fun onPopupClosed() {
+              TODO("Not yet implemented")
+            }
+          }*/
+        )
+
+        fun highlightColorTemporary(editor: Editor, element: PsiElement, color: Color) {
+          removeCurrentHighlighter(editor)
+
+          val highlighter = editor.markupModel.addRangeHighlighter(
+            element.textRange.startOffset,
+            element.textRange.endOffset,
+            com.intellij.openapi.editor.markup.HighlighterLayer.SELECTION - 1,
+            com.intellij.openapi.editor.markup.TextAttributes().apply {
+              backgroundColor = color
+            },
+            com.intellij.openapi.editor.markup.HighlighterTargetArea.EXACT_RANGE
+          )
+
+          currentHighlighter = highlighter
+        }
+
+        fun removeCurrentHighlighter(editor: Editor) {
+          currentHighlighter?.let {
+            editor.markupModel.removeHighlighter(it)
+            currentHighlighter = null
+          }
+        }
+
+        fun replaceColorInCode(editor: Editor, element: PsiElement, oldColor: Color, newColor: Color) {
+          val project = editor.project ?: return
+          val document = editor.document
+
+          val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return
+
+          val argb = (newColor.alpha shl 24) or
+                  (newColor.red shl 16) or
+                  (newColor.green shl 8) or
+                  (newColor.blue)
+
+          val unsigned = argb.toUInt()
+          val newText = "0x${unsigned.toString(16).uppercase()}"
+
+          val factory = JavaPsiFacade.getInstance(project).elementFactory
+          val newElement = factory.createExpressionFromText(newText, element)
+
+          WriteCommandAction.runWriteCommandAction(project, "Update Color", null, {
+            element.replace(newElement)
+          }, psiFile)
+        }
+
+      }
+
+      private fun highlightColorTemporary(editor: Editor, element: PsiElement, color: Color) {
+        removeCurrentHighlighter(editor)
+
+        val highlighter = editor.markupModel.addRangeHighlighter(
+          element.textRange.startOffset,
+          element.textRange.endOffset,
+          com.intellij.openapi.editor.markup.HighlighterLayer.SELECTION - 1,
+          com.intellij.openapi.editor.markup.TextAttributes().apply {
+            backgroundColor = color
+          },
+          com.intellij.openapi.editor.markup.HighlighterTargetArea.EXACT_RANGE
+        )
+
+        currentHighlighter = highlighter
+      }
+
+      private fun removeCurrentHighlighter(editor: Editor) {
+        currentHighlighter?.let {
+          editor.markupModel.removeHighlighter(it)
+          currentHighlighter = null
+        }
+      }
+
+      private fun replaceColorInCode(editor: Editor, element: PsiElement, oldColor: Color, newColor: Color) {
+        val project = editor.project ?: return
+        val document = editor.document
+
+        val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return
+
+        val argb = (newColor.alpha shl 24) or
+                (newColor.red shl 16) or
+                (newColor.green shl 8) or
+                (newColor.blue)
+
+        val unsigned = argb.toUInt()
+        val newText = "0x${unsigned.toString(16).uppercase()}"
+
+        val factory = JavaPsiFacade.getInstance(project).elementFactory
+        val newElement = factory.createExpressionFromText(newText, element)
+
+        WriteCommandAction.runWriteCommandAction(project, "Update Color", null, {
+          element.replace(newElement)
+        }, psiFile)
+      }
+    }
   }
+
+
+  /*
+  override fun getClickAction(): AnAction {
+    return object : AnAction(message("choose.color1")) {
+      override fun actionPerformed(e: AnActionEvent) {
+        val editor = e.getData(CommonDataKeys.EDITOR) ?: return
+        val currentColor = color ?: return
+        element ?: return
+
+        ColorChooserService.instance.showPopup(
+          project = editor.project,
+          currentColor = currentColor,
+          editor = editor,
+          listener = { newColor, source ->
+            newColor?.takeIf { it != currentColor }?.let { updatedColor ->
+              replaceColorInCode(editor, element, color, updatedColor)
+            }
+          },
+          showAlpha = true
+        )
+      }
+
+      private fun copyColor(currentColor: Color, newColor: Color?) {
+        if (newColor == null || newColor == currentColor) return
+        CopyPasteManager.getInstance().setContents(StringSelection(ColorUtil.toHex(newColor, false)))
+      }
+
+      private fun replaceColorInCode(editor: Editor, element: PsiElement, oldColor: Color, newColor: Color) {
+        val project = editor.project ?: return
+        val document = editor.document
+
+        val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document) ?: return
+
+        val argb = (newColor.alpha shl 24) or
+                (newColor.red shl 16) or
+                (newColor.green shl 8) or
+                (newColor.blue)
+
+        val unsigned = argb.toUInt()
+        val newText = "0x${unsigned.toString(16).uppercase()}"
+
+
+        val factory = JavaPsiFacade.getInstance(project).elementFactory
+        val newElement = factory.createExpressionFromText(newText, element)
+
+        WriteCommandAction.runWriteCommandAction(project, "Update Color", null, {
+          element.replace(newElement)
+          //DaemonCodeAnalyzer.getInstance(project).restart(psiFile)
+
+
+
+        }, psiFile)
+      }
+    }
+  }
+
+  */
+
 
   override fun isNavigateAction(): Boolean = true
 

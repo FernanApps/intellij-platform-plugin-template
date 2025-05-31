@@ -50,22 +50,23 @@ object ColorParserFactory {
       text.startsWith(HASH) && text.length > 1 -> HexColorParser(HASH)
       text.startsWith(RGB.text) -> RGBColorParser()
       text.startsWith(HSL.text) -> HSLColorParser()
-      text.startsWith(OX.text) -> HexColorParser(OX.text)
+      // Not Working with Jetpack Color
+      // TODO text.startsWith(OX.text) ->  HexColorParser(OX.text)
 
       // Tuple detection
-      config.isTupleDetectEnabled && TUPLE_PATTERN.matches(text) -> RGBColorParser()
+      // NOT config.isTupleDetectEnabled && TUPLE_PATTERN.matches(text) -> RGBColorParser()
 
       // Hex with no hash detection
-      config.isHexDetectEnabled && NO_HEX_PATTERN.matches(text) -> HexColorParser("")
+      // NOT config.isHexDetectEnabled && NO_HEX_PATTERN.matches(text) -> HexColorParser("")
 
       // If the lang visitor should parse the text, retrieve the parser
       langVisitor.shouldParseText(text) -> langVisitor.getParser(text) ?: PredefinedColorParser()
 
       // custom colors
-      config.isColorNamesDetectEnabled && text in customColors -> CustomColorParser()
+      // NOT config.isColorNamesDetectEnabled && text in customColors -> CustomColorParser()
 
       // Parse from PredefinedColors
-      config.isColorNamesDetectEnabled -> PredefinedColorParser()
+      // NOT config.isColorNamesDetectEnabled -> PredefinedColorParser()
 
       else -> NoParser()
     }

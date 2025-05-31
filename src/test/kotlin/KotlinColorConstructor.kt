@@ -34,6 +34,7 @@ enum class ThemeColor {
 
 
 // Jetpack Compose Colors
+val a = Color(0xFFDA5383)
 val a = Color(0xFF4285f4)
 var ALICEBLUE: Color = ColorUIResource(0xf0f8ff)
 

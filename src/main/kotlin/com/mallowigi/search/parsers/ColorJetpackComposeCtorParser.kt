@@ -30,26 +30,35 @@ import java.awt.Color
 import java.util.*
 
 /** Parses colors in the form `Color(a,b,c)` */
-class ColorCtorParser : ColorParser {
+class ColorJetpackComposeCtorParser : ColorParser {
 
   override fun parseColor(text: String): Color? = parseConstructor(text)
 
   private fun parseConstructor(text: String): Color? {
+
     val colorData = ColorData()
     colorData.run {
       init(text)
 
-      if (startParen == -1 || endParen == -1) return null
+      // Disable for moment
+      //if (startParen == -1 || endParen == -1) return null
 
       // tokenize the string into "red,green,blue"
-      val tokenizer = StringTokenizer(text.substring(startParen + 1, endParen), ",")
+      val tokenizer = StringTokenizer(text /*.substring(startParen + 1, endParen)*/, ",")
       val params = tokenizer.countTokens()
       if (params < 1 || params > 4) return null
 
       return when (params) {
         1    -> {// single hex int
           val hex = parseComponent(getNextNumber(tokenizer)) as Int
-          Color(hex)
+
+          val alpha = (hex ushr 24) and 0xFF
+          val red = (hex ushr 16) and 0xFF
+          val green = (hex ushr 8) and 0xFF
+          val blue = hex and 0xFF
+
+          Color(red, green, blue, alpha)
+          //Color(hex)
         }
 
         2    -> {// hex int followed with hasAlpha
@@ -63,5 +72,8 @@ class ColorCtorParser : ColorParser {
     }
   }
 
+
+
 }
+
 

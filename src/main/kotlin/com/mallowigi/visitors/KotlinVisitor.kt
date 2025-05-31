@@ -30,46 +30,55 @@ import com.intellij.codeInsight.daemon.impl.HighlightVisitor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiUtilCore
+import com.mallowigi.search.ColorPrefixes
 import com.mallowigi.search.ColorPrefixes.COLOR_METHOD
 import com.mallowigi.search.ColorPrefixes.KT_COLOR
+import com.mallowigi.search.ColorRegexes
 import com.mallowigi.search.ColorSearchEngine
-import com.mallowigi.search.parsers.ColorCtorParser
-import com.mallowigi.search.parsers.ColorMethodParser
+import com.mallowigi.search.parsers.ColorJetpackComposeCtorParser
 import com.mallowigi.search.parsers.ColorParser
 import org.jetbrains.kotlin.psi.KtFile
 import java.awt.Color
 
 class KotlinVisitor : ColorVisitor() {
 
-  private val allowedTypes = listOf(
-    "INTEGER_CONSTANT",
-    "STRING_TEMPLATE",
-    "CALL_EXPRESSION",
-    "REFERENCE_EXPRESSION"
-  )
+    private val allowedTypes = listOf(
+        "INTEGER_CONSTANT",
+        //"STRING_TEMPLATE",
+        //"CALL_EXPRESSION",
+        //"REFERENCE_EXPRESSION"
+    )
 
-  override fun clone(): HighlightVisitor = KotlinVisitor()
+    override fun clone(): HighlightVisitor = KotlinVisitor()
 
-  override fun getParser(text: String): ColorParser = when {
-    text.startsWith(KT_COLOR.text) -> ColorCtorParser()
-    text.startsWith(COLOR_METHOD.text) -> ColorMethodParser(COLOR_METHOD.text)
-    else -> throw IllegalArgumentException("Cannot find a parser for the text: $text")
-  }
+    override fun getParser(text: String): ColorParser = when {
+        //Regex(ColorRegexes.KT_COLOR.text).containsMatchIn(text) -> ColorCtorParser()
+        text.startsWith(ColorPrefixes.OX.text) -> ColorJetpackComposeCtorParser()
+        //text.startsWith(COLOR_METHOD.text) -> ColorMethodParser(COLOR_METHOD.text)
+        else -> throw IllegalArgumentException("Cannot find a parser for the text: $text")
 
-  override fun shouldParseText(text: String): Boolean = when {
-    config.isKotlinColorCtorEnabled -> text.startsWith(KT_COLOR.text)
-    config.isKotlinColorMethodEnabled -> text.startsWith(COLOR_METHOD.text)
-    else -> false
-  }
+    }
 
-  override fun suitableForFile(file: PsiFile): Boolean = file is KtFile
+    /*
+    override fun shouldParseText(text: String): Boolean = when {
+        config.isKotlinColorCtorEnabled -> text.startsWith(KT_COLOR.text)
+        config.isKotlinColorMethodEnabled -> text.startsWith(COLOR_METHOD.text)
+        else -> false
+    }
+    */
 
-  override fun accept(element: PsiElement): Color? {
-    val type = PsiUtilCore.getElementType(element).toString()
-    if (type !in allowedTypes) return null
+    override fun shouldParseText(text: String): Boolean = text.startsWith(ColorPrefixes.OX.text)
 
-    val value = element.text
-    return ColorSearchEngine.getColor(value, this)
-  }
+
+    override fun suitableForFile(file: PsiFile): Boolean = file is KtFile
+
+    override fun accept(element: PsiElement): Color? {
+        val type = PsiUtilCore.getElementType(element).toString()
+        if (type !in allowedTypes) return null
+
+        val value = element.text
+        println(value)
+        return ColorSearchEngine.getColor(value, this)
+    }
 
 }
