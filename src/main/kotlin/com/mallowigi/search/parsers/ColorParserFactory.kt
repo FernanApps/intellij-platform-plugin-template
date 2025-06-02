@@ -43,7 +43,7 @@ object ColorParserFactory {
   private val config = ColorHighlighterState.instance
 
   fun getParser(text: String, langVisitor: LangVisitor): ColorParser {
-    val customColors = CustomColorsConfig.instance.customColors
+    //val customColors = CustomColorsConfig.instance.customColors
 
     return when {
       !langVisitor.shouldVisit() -> NoParser()

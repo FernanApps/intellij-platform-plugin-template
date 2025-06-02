@@ -50,12 +50,6 @@
                                  parentId="editor"
                                  id="ColorHighlighterConfigurable"/>
 
-        <applicationService serviceImplementation="com.mallowigi.config.custom.CustomColorsConfig"/>
-        <applicationConfigurable instance="com.mallowigi.config.custom.CustomColorsConfigurable"
-                                 dynamic="true"
-                                 key="CustomColorsForm.title"
-                                 parentId="ColorHighlighterConfigurable"
-                                 id="CustomColorsConfig"/>
 
         <backgroundPostStartupActivity implementation="com.mallowigi.UpdatesComponent"/>
     </extensions>
